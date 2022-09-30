@@ -77,6 +77,4 @@ We should input the sentence that we want to check for grammer errors and select
 If you find a bug (the website couldn't handle the query and / or gave undesired results), kindly open an [issue](https://github.com/Lori10/Question-Answering-NLP-System/issues) here by including your search query and the expected result
 
 ## Future Scope
-* Try other techniques to reach higher model performance for example : other smoothing techniques, interpolation, backoff which help us better estimate the probabilities of unseen n-gram sequences.
-* Use other performance metrics to select the best model like perplexity etc.
 * Optimize Flask app.py Front End.
