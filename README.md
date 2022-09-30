@@ -15,7 +15,7 @@
   * [Future scope of project](#future-scope)
 
 
-## Business Problem Statement
+## Problem Statement
 Question Answering (QnA) model is one of the very basic systems of Natural Language Processing. In QnA, the Machine Learning based system generates answers from the knowledge base or text paragraphs for the questions posed as input. Various machine learning methods can be implemented to build Question Answering systems. Using Natural Language Processing, we can achieve this objective. NLP helps the system to identify and understand the meaning of any sentences with proper contexts. In this project I am going to fine-tune the BERT Transformer which will take a context and a question as input, process the context and prepare the answer from it.
 
 ## Data
@@ -33,7 +33,14 @@ Data Source : Stanford Question Answering Dataset (SQuAD) is a reading comprehen
 I Preprocessed this data with the following steps:
 
 1. The features are : 1. the question (string), the context(string). The target/label should be the index(position) where the answers in the context string starts and the index(position) in the context string where the answer ends. We assume that the answer is a substring of context string. If the data is not in this kind of format we should preprocess it to this type of features and labels (dictionary). The data must be in a dictionary format where the keys are the question, context, start_index, end_index. The method prepare_data is needed for this step. Note : In the dataset, we are given the starting index and the answer. We assume that the answer is substring of context string.
-2. Using the tokenizer we get the tokenized input. The training data that the Transformer expects the following : features which are the input_ids and attention_mask of the tokenized input (question and context) and the target which is the index(position) of the token in the tokenized input where the answer starts and the index(position) of the token in the tokenized input where the answer ends. The data must be in a dictionary format where the keys are the input_ids, attention_mask, start_token_index and end_token_index. The methods find_labels and preprocess_training_examples is needed for this step. Since we will be fine-tuning BERT we must tokenizer our data using the BERT Tokenizer from HuggingFace. But how does the BERT Tokenizer tokenize/preprocess the data into a format that BERT model accepts ?! Lets explain it in more details in the next section.
+2. Using the tokenizer we get the tokenized input. The training data that the Transformer expects the following : features which are the input_ids and attention_mask of the tokenized input (question and context) and the target which is the index(position) of the token in the tokenized input where the answer starts and the index(position) of the token in the tokenized input where the answer ends. The data must be in a dictionary format where the keys are the input_ids, attention_mask, start_token_index and end_token_index. The methods find_labels and preprocess_training_examples is needed for this step. Since we will be fine-tuning BERT we must tokenizer our data using the BERT Tokenizer from HuggingFace. But how does the BERT Tokenizer tokenize/preprocess the data into a format that BERT model accepts ?! Lets explain it in more details in the next section (Bert Tokenizer Section).
+
+All Cases using that we need to handle during preprocessing
+
+* Some examples have start_index and end_index equal to -1 which indicates that there is no answer available (or this question is not answerable). In this case we can encode start_position and end_position to be 0 (CLS token index).
+* Tokenized input length is lower than max_length. In this case we perform padding.
+* Tokenized input length is greater than max_length and tokenized question length is lower than max_length (common case). In this case we perform truncation='only_second' to keep the question and truncate/discard tokens from the context. The Answer can be truncated or not depending on the context length and max_length. If the answer has been truncated we can either just discard it and set start_position and end_position to be equal to max_length to indicate that answer was truncated OR (better approach) to not discard the answer (these examples) we can perform special encoding with return_overflowing_tokens=True by encoding for a single example many sequences of max_length and allowing some overlapping use stride attribute. We feed to the model the tokenized sequence that contains the answer. This is a better approach since we do not discard the answer. But even in this case the answer can be splitted in different tokenized sequences; so in this case we return 0,0 for the start and end_position.
+* Tokenized input length is greater than max_length and tokenized question length is greater than max_length. In this case it will be generated an error. We should either increase max_length or discard these examples if they are not too many.
 
 ## Bert Tokenizer
 1. Apply Word Pience Tokenization to the raw sentence (can also be many sentences which is much more applicable for NLP tasks such as generating question and answer papers). Word Piece Tokenization is a technique that is used to segment sentences into tokens and is based on pre-trained Models with the dimension of 768 (max_length; for different BERT models we should check the max_length that the model accepts).
@@ -43,14 +50,6 @@ I Preprocessed this data with the following steps:
 5. The position embedding determines the index portion of the individual token in the input sequence. Here, my input sequence consists of four tokens. So based on a zero based index, you can see the position embedding tokens for all the tokens. The position embedding for the token CLS is 0, the position embedding for the token love is 1, and so on.
 6. Finally we sum the position, segment and token embedding that have been previously determined (sum of each dimension)
 7. To have same length for all sequences we perform padding by adding 0s in the end so that new length=max_length (768). So the final embeddining of one training example is of shape (1, 4, 768). We should keep in mind that all training exampled will be encoded in this way.
-
-
-All Cases using that we need to handle during preprocessing
-
-* Some examples have start_index and end_index equal to -1 which indicates that there is no answer available (or this question is not answerable). In this case we can encode start_position and end_position to be 0 (CLS token index).
-* Tokenized input length is lower than max_length. In this case we perform padding.
-* Tokenized input length is greater than max_length and tokenized question length is lower than max_length (common case). In this case we perform truncation='only_second' to keep the question and truncate/discard tokens from the context. The Answer can be truncated or not depending on the context length and max_length. If the answer has been truncated we can either just discard it and set start_position and end_position to be equal to max_length to indicate that answer was truncated OR (better approach) to not discard the answer (these examples) we can perform special encoding with return_overflowing_tokens=True by encoding for a single example many sequences of max_length and allowing some overlapping use stride attribute. We feed to the model the tokenized sequence that contains the answer. This is a better approach since we do not discard the answer. But even in this case the answer can be splitted in different tokenized sequences; so in this case we return 0,0 for the start and end_position.
-* Tokenized input length is greater than max_length and tokenized question length is greater than max_length. In this case it will be generated an error. We should either increase max_length or discard these examples if they are not too many.
 
 
 ## Fine Tune BERT Transformer
