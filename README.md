@@ -69,7 +69,7 @@ This way, the model learns an inner representation of the English language that 
 This is how the web application looks like : 
 We should input the sentence that we want to check for grammer errors and select the value of n for the n-gram language model. 
 
-![alt text](https://github.com/Lori10/Statistical-Grammer-Checker-FromScratch/blob/main/demo.png "Image")
+![alt text](https://github.com/Lori10/Question-Answering-NLP-System/blob/main/img_qa.png "Image")
 
 
 ## Bug and Feature Request
