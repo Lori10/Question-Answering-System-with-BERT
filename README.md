@@ -7,9 +7,7 @@
   * [Data Preprocessing](#Data-Preprocessing)
   * [Bert Tokenizer](#Bert-Tokenizer)
   * [Fine Tune BERT Transformer](#Fine-Tune-BERT-Transformer)
-  * [Techniques to improve the model performance](#Techniques-to-improve-the-model-performance)
-  * [Important Notes](#Important-Notes)
-  * [Disadvantages of N gram language model and faced issues](#Disadvantages-of-N-gram-language-model-and-faced-issues)
+  * [Make Predictions](#Make-Predictions)
   * [Demo](#demo)
   * [Bug and Feature Request](#Bug-and-Feature-Request)
   * [Future scope of project](#future-scope)
@@ -58,21 +56,14 @@ All Cases using that we need to handle during preprocessing
 This way, the model learns an inner representation of the English language that can then be used to extract features useful for downstream tasks: if you have a dataset of labeled sentences for instance, you can train a standard classifier using the features produced by the BERT model as inputs.
 * In practice, fine-tuning is the most efficient way of applying pretrained transformers to new tasks, thereby reducing training time. That's why I am going to fine-tune the BERT Transformer using the SQUAD dataset.
 
-## Techniques to improve the model performance
+## Make Predictions
 
-1. Collecting more text data. We calculate the probability of new english sentences and it may be grammatically correct. But in case of having a small corpus (not huge enough) many words won't match any word from our corpus which will result in having a low probability and maybe classifying it as grammtically incorrect. By increasing the size of our corpus we increase the probabilty of seeing those words from the new test sentences in our corpus and as a result we'll have a more accuracte probability of whether a sentence can be grammatically correct or not.
-2. Quality of the corpus/text data. In order to achieve good results in detecting grammer errors we assume that our corpus is grammtically correct. If there were grammer errors in our corpus, new sentences which are grammatically incorrect would have many matches in the corpus which would cause their probabilities to be high and as a result to be classified as grammatically correct.
-2. Another very important parameter that affects our bigram model performance is the threshold. Threshold determines the point/the value where we classify a sentence as grammtically correct or not. So if we choose a relatively low threshold, it may lead to too many False Positives which we would not want. In case of using a relatively high threshold, it may lead to too many False Negatives which we definitely want to avoid. Since we care more about the False Negative Rate (detecting the sentences which are grammatically incorrect) maybe we could choose a bit lower threshold. One way to find a 'good' threshold would be to tune it. We can select a range of values and make predictions using different threshold (which means different models) on new test sentences and check how the language model performs. In the end we choose the value of threshold which gives the highest performance. Some good performance metrics that we might use to evaluate our different language models in our case would be F1 Score or Recall.
-4. One other hyperparameter that affects our bi-gram language model performance is the k-smoothing parameter. There are different ways to perform Smoothing in language models for example : 
-Add-One Smoothing, K-Smoothing etc. In our case we are going to apply K-Smoothing. The advantage of K-Smoothing consists of improving the probability distributions. In case of K=1 smoothing may lead to sharp changes in probabilities. For example two different sentences that have the same probability (without k-smoothing which means k=0), after applying k=1 smoothing they may have different probabilities.
-5. Increasing the test set. The bigger the test set, the better our model can generalize on new test sentences. I used a special test set that includes some grammer errors like Noun-Verb agreement and Determinant-Noun agreement. It is still a very small test set and it would be a good idea to have such more examples and check how the model performs. We should keep in mind that the tuned threshold and k-smoothing parameter may overfit to this small test set.
-6. To reach higher model performance we could use some other techniques for example : other smoothing techniques, interpolation, backoff which help us better estimate the probability of unseen n-gram sequences.
-
-## Important Notes 
-* We dont divide our corpus/text dataset into training and test set since we assume that the entire text data is grammatically correct. Since we want to catch specific grammer errors I will build the test set manually and check the language model performance especially on those chosen test sentences. We should always keep in mind that there is no guarentee that the model will perform well on other unseen test sets because our test is quite small.
-* The bigram language model can detect grammer errors that include 2 grams/tokens for example noun-verb agreement, determinant-noun agreement, adjective order etc which we can detect using a bigram language model. If we want to catch other grammer errors on the long term we have to look at the words beyond 2 grams; thats why in those cases we should use n gram language model where n>=3.
-
-
+1. First we tokenize the question and context using the same Tokenizer. We do not need to perform padding to avoid PAD tokens in the answer that we want to generate. But we have to make sure that the tokenized input length is lower or equal to model_max_length. If it is not the case, we have to truncate the sequence.
+2. We feed the tokenized input to our model and generate the logits. The model generates the start_logits (for the start position/index) and end_logits (for end position/index) which are arrays of shape nr_examples x max_length. This means for the start position the model computes a probability (logit) of each token in the tokenized sequence of being the start_position.
+3. To compute the final start and end index (postion) we can follow 2 approaches. We can compute the argmax of start_logits and end_logits (independently) to get the start and end position of each example OR we convert logits into probailities. Then we compute a score for each pair of start and end position by taking the product of start and end_probability. Finally we take start and end position of highest score. This is the approach that the Pipeline in HuggingFace use and its obviously a better technique to generate the correct answers since we take into consideration the best start and end index pair and not the best start and the best end index.
+4. Using the start and end position we select the tokenized answer (subset from tokenized input) and convert tokens their corresponding strings to get the final answer.
+Note : The function we need for prediction is prediction.
+We have predict_know_label method which is used to predict on examples where the label is known (start and end position) and predict_unknown_label method where the label is not known (we have only the questions and their corresponding answers)
 
 ## Disadvantages of N gram language model and faced issues
 * The main disadvantage of n-gram language model is that it requires a lot of space and RAM. Especially in case of having long sentences the model should store the probabilities of all possible combinations and also all the n-gram-counts dictionaries. <br />
