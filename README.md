@@ -62,18 +62,7 @@ This way, the model learns an inner representation of the English language that 
 2. We feed the tokenized input to our model and generate the logits. The model generates the start_logits (for the start position/index) and end_logits (for end position/index) which are arrays of shape nr_examples x max_length. This means for the start position the model computes a probability (logit) of each token in the tokenized sequence of being the start_position.
 3. To compute the final start and end index (postion) we can follow 2 approaches. We can compute the argmax of start_logits and end_logits (independently) to get the start and end position of each example OR we convert logits into probailities. Then we compute a score for each pair of start and end position by taking the product of start and end_probability. Finally we take start and end position of highest score. This is the approach that the Pipeline in HuggingFace use and its obviously a better technique to generate the correct answers since we take into consideration the best start and end index pair and not the best start and the best end index.
 4. Using the start and end position we select the tokenized answer (subset from tokenized input) and convert tokens their corresponding strings to get the final answer.
-Note : The function we need for prediction is prediction.
-We have predict_know_label method which is used to predict on examples where the label is known (start and end position) and predict_unknown_label method where the label is not known (we have only the questions and their corresponding answers)
 
-## Disadvantages of N gram language model and faced issues
-* The main disadvantage of n-gram language model is that it requires a lot of space and RAM. Especially in case of having long sentences the model should store the probabilities of all possible combinations and also all the n-gram-counts dictionaries. <br />
-<b>Possible Solution</b> : Train a more advanced model like RNN etc. 
-* N gram language model estimated the probability of a word given some previous words. In fact to estimate the probability of a word we should look at the previous and text words to capture the full context. <br />
-<b>Possible Solution</b> : Use bidirectional RNN.
-* Another disadvantage of n-gram language model : The longer the sentences the lower the probability becomes. Since we multiply by numbers that are lower than 1 the sentence probability decreases. This means that the longer the sentence the lower the probability that it is correct. The sentence may be very long and grammatically correct but is classified as grammatically incorrect by our model because of its high length. So it becomes very difficult to estimate the probability of long sentences due to their length. As a result the n-gram language model fails to capute long dependencies between words in a sentence <br />
-<b>Possible Solution</b> : Finding out the right value of k-smoothing parameter since it affects the distribution of the probabilities or use other models like RNN.
-* Basic sentences that are very commonly used are classified correctly , some sentences are grammatically correct but classified as grammatically incorrect by our bigram model since most of their words do not appear in our corpus. <br />
-<b>Possible Solution</b> : increase the corpus size.
 
 ## Demo
 
